@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#FEE500</color>
+    <color name="colorPrimaryDark">#FAED7D</color>
+    <color name="colorAccent">#03DAC5</color>
+    <color name="baseTextColor">#222222</color>
+    <color name="subTextColor">#555555</color>
+    <color name="pale_grey">#f7f8fa</color>
+    <color name="chip_select">#eeecf8</color>
+</resources>
