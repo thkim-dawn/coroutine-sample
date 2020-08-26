@@ -1,20 +1,17 @@
 package co.kr.taehoon.coroutine_sample.data
 
-import android.media.Image
 import android.util.Log
-import androidx.lifecycle.Observer
 import androidx.paging.PageKeyedDataSource
 import co.kr.taehoon.coroutine_sample.SearchViewModel
-import io.reactivex.Single
-import io.reactivex.rxkotlin.Observables
-import io.reactivex.rxkotlin.addTo
 import kotlinx.coroutines.*
-import kotlin.coroutines.coroutineContext
 
-class ImageDocumentDataSource(private val searchViewModel: SearchViewModel) :
+
+class ImageDocumentDataSource(
+    private val searchViewModel: SearchViewModel,
+    private val repository: ImageRepository
+) :
     PageKeyedDataSource<Int, ImageDocument>() {
     private val TAG = "ImageDocumentDataSource"
-
     override fun loadInitial(
         params: LoadInitialParams<Int>,
         callback: LoadInitialCallback<Int, ImageDocument>
@@ -23,13 +20,15 @@ class ImageDocumentDataSource(private val searchViewModel: SearchViewModel) :
         /*
         searchViewModel.isFilter -> 카테고리를 클릭했을 경우 이전 Datasource를 초기화 한다.
          */
-        if (searchViewModel.isFilter) {// 카테고리 선택으로 인입
-            val filter = searchViewModel.filterImageDocuments(
-                searchViewModel.totalImageDocuments,
-                searchViewModel.selectedCollection
-            )
-            searchViewModel.isFilter = false
-            callback.onResult(filter, null, searchViewModel.getNextPage())
+        if (searchViewModel.isFilter) {// 카테고리 선택으
+            CoroutineScope(Dispatchers.Default).launch {// 로 인입
+                val filter = repository.getFilterImageDocuments(
+                    searchViewModel.totalImageDocuments,
+                    searchViewModel.selectedCollection
+                )
+                searchViewModel.isFilter = false
+                callback.onResult(filter, null, searchViewModel.getNextPage())
+            }
         } else {//버튼 클릭으로 인입
             val query = searchViewModel.searchTextLiveData.value
             if (query.isNullOrEmpty()) {
@@ -66,7 +65,7 @@ class ImageDocumentDataSource(private val searchViewModel: SearchViewModel) :
                 if (it.isEmpty() && nextPage != null) {
                     imageDocuments = searchViewModel.searchImage(lastQuery, nextPage)
                 }
-                imageDocuments?.let {list->
+                imageDocuments?.let { list ->
                     callback.onResult(list, searchViewModel.getNextPage())
                 }
             }
@@ -88,7 +87,7 @@ class ImageDocumentDataSource(private val searchViewModel: SearchViewModel) :
                 if (it.isEmpty() && prePage != null) {
                     imageDocuments = searchViewModel.searchImage(lastQuery, prePage)
                 }
-                imageDocuments?.let {list->
+                imageDocuments?.let { list ->
                     callback.onResult(list, searchViewModel.getPrePage())
                 }
             }

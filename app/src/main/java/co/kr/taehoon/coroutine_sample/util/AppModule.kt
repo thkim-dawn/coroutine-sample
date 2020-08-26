@@ -2,6 +2,7 @@ package co.kr.taehoon.coroutine_sample.util
 
 import co.kr.taehoon.coroutine_sample.R
 import co.kr.taehoon.coroutine_sample.SearchViewModel
+import co.kr.taehoon.coroutine_sample.data.ImageRepository
 import com.google.gson.GsonBuilder
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -67,7 +68,13 @@ val viewModelModule: Module = module {
     }
 }
 
+val repositoryModule : Module = module {
+    single {
+        ImageRepository()
+    }
+}
 val appModules = listOf(
     apiModule,
+    repositoryModule,
     viewModelModule
 )

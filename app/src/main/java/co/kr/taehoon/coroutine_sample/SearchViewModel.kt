@@ -9,18 +9,21 @@ import androidx.paging.RxPagedListBuilder
 import co.kr.taehoon.coroutine_sample.data.ImageDocument
 import co.kr.taehoon.coroutine_sample.data.ImageDocumentDataSource
 import co.kr.taehoon.coroutine_sample.data.ImageRepository
+import co.kr.taehoon.coroutine_sample.data.Meta
 import co.kr.taehoon.coroutine_sample.util.default
+import co.kr.taehoon.coroutine_sample.util.parsingData
 import io.reactivex.disposables.CompositeDisposable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import org.koin.core.KoinComponent
+import org.koin.core.inject
 
 class SearchViewModel : ViewModel(), KoinComponent {
     private val TAG = "SearchViewModel"
     private val viewModelJob = Job()
-    private val repository = ImageRepository()
+    private val repository : ImageRepository by inject()
     private val viewModelScope = CoroutineScope(Dispatchers.Main + viewModelJob)
     private val compositeDisposable: CompositeDisposable = CompositeDisposable()
     val errorLiveData = MutableLiveData<String>()
@@ -52,7 +55,7 @@ class SearchViewModel : ViewModel(), KoinComponent {
     val pagedListBuilder =
         RxPagedListBuilder<Int, ImageDocument>(object : DataSource.Factory<Int, ImageDocument>() {
             override fun create(): DataSource<Int, ImageDocument> {
-                return ImageDocumentDataSource(this@SearchViewModel)
+                return ImageDocumentDataSource(this@SearchViewModel,repository)
             }
         }, config).buildObservable()
 
@@ -64,10 +67,13 @@ class SearchViewModel : ViewModel(), KoinComponent {
                 lastPage = page
                 lastQuery = query
 
-                repository.getAllImage(query, page).let {
+                repository.getAllImageDocuments(query, page).let {
                     totalImageDocuments.addAll(it)
                     collectionsLiveData.value = getCollection(it)
-                    imageDocuments =  filterImageDocuments(it, selectedCollection)
+                    imageDocuments =  repository.getFilterImageDocuments(it, selectedCollection)
+                }
+                repository.lastJsonElement?.parsingData<Meta>("meta")?.let { meta ->
+                    isEndPage = meta.isEnd
                 }
                 //처음에 검색되지 않았을경우 error 표시
                 if (totalImageDocuments.isEmpty()) {
@@ -90,24 +96,9 @@ class SearchViewModel : ViewModel(), KoinComponent {
         return query.isNotEmpty() && (query != lastQuery)
     }
 
-    /**
-     * @param sourceData filter를 진행할 list
-     * @param selectedCollection 현재 선택된 카테고리
-     */
-
-    fun filterImageDocuments(
-        sourceData: List<ImageDocument>,
-        selectedCollection: String
-    ): MutableList<ImageDocument> {
-        return if (selectedCollection.isEmpty() || selectedCollection == ALL) {
-            sourceData
-        } else {
-            sourceData.filter { selectedCollection == it.collection }
-        }.toMutableList()
-    }
-
     //마지막 페이지 기점으로 이후 페이지가 존재하면 +1 없으면 null
     fun getNextPage(): Int? {
+        Log.d("isEndPage","$isEndPage")
         return if (!isEndPage) lastPage + 1 else null
     }
 
